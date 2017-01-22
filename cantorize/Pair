@@ -1,0 +1,4 @@
+#!wolframscript -function -signature Number Number
+
+Pair[n_, m_] := (1/2) * (n + m) * (n + m + 1) + m;
+Print[Pair[#1, #2]]&

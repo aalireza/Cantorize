@@ -1,0 +1,7 @@
+#!wolframscript -function -signature Number
+
+w[z_] := Floor[(Sqrt[8 * z + 1] - 1)/2];
+t[w_] := (w^2 + w) / 2;
+DepairFirst[z_] := w[z] - (z - t[w[z]]);
+DepairSecond[z_] := z - t[w[z]];
+Print[Column[DepairFirst[#1], DepairSecond[#1]]]&
