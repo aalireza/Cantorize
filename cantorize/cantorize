@@ -1,23 +1,41 @@
 #!/usr/bin/env python
+"""
+ Copyright 2017 Alireza Rafiei
+
+ Licensed under the Apache License, Version 2.0 (the "License"); you may
+ not use this file except in compliance with the License. You may obtain
+ a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+"""
 
 from Crypto.Cipher import AES
 from Crypto.Protocol import KDF
 import argparse
-import subprocess
 import binascii
+import subprocess
 
 # Blocksize by default is 16 bytes for AES-128.
 BLOCKSIZE = 16
 
+# The alphabet for base changes. It'd be the standard representation upto hex.
 NUM_REPO = dict(
     dict({i: str(i) for i in range(10)}).items() +
     dict({10: 'a', 11: 'b', 12: 'c', 13: 'd',
           14: 'e', 15: 'f', 16: 'g'}).items()
 )
 
-# Crypto.get_random_bytes()
-SALT = '_\x94\xdb\xbd\xd8\xdd?5\xff\xb5\xe1\x9d\xbe\n\x16\xc2'
-IV = '\x03\x0c\x06\xf0B\xdb\xcbv!0\xe4\xea"\xc3;-'
+# Random.get_random_bytes(BLOCKSIZE=16) from the Crypto module.
+# Should be randomly generated every time. They're hard coded for
+# lazyness/easiness.
+SALT = ']>\x8e\xa1S%\xdfZq\x7f\xacp@\x82\xd19'
+IV = '\xc5z\x03\xabJ\x90\xfbt6"A\xc0\xf1P ;'
 
 
 def argument_handler():
@@ -42,12 +60,34 @@ def argument_handler():
     parser.add_argument("-m0", "--ciphertext", type=str)
     parser.add_argument("-p0", "--paired_password", type=str)
     args = parser.parse_args()
+    encryption_block_args = [args.first_message, args.first_password,
+                             args.second_message, args.second_password]
+    decryption_block_args = [args.ciphertext, args.paired_password]
+    assert (
+        (all(encryption_block_args) or (not any(encryption_block_args))) and
+        (
+            all(encryption_block_args) and (not any(decryption_block_args)) or
+            ((not any(encryption_block_args)) and all(decryption_block_args))
+        )
+    )
     return (args.encrypt, args.decrypt, args.first_message,
             args.second_message, args.first_password, args.second_password,
             args.ciphertext, args.paired_password)
 
 
 def base_10_to_b(decimal, b):
+    """
+    Changes the base of a decimal to b where b <= len(NUM_REPO.items())
+
+    Parameters
+    ----------
+    decimal           int or long
+    b                 int
+
+    Returns
+    -------
+    new_num_string    str
+    """
     new_num_string = ''
     current = decimal
     while current != 0:
@@ -61,6 +101,18 @@ def base_10_to_b(decimal, b):
 
 
 def base_b_to_10(number, b):
+    """
+    Changes the base of `number` from `b` to 10.
+
+    Parameters
+    ----------
+    number:           str
+    b:                int
+
+    Returns
+    -------
+    result            int or long
+    """
     result = 0
     number = list(str(number))
     number.reverse()
@@ -72,23 +124,73 @@ def base_b_to_10(number, b):
 
 
 def gen_key(password, salt, dkLen=BLOCKSIZE):
+    """
+    Implement PBKDF2 to make short passwords match the BLOCKSIZE.
+
+    Parameters
+    ---------
+    password            str
+    salt                str
+    dkLen               int
+
+    Returns
+    -------
+    -                   str
+    """
     return KDF.PBKDF2(str(password), salt, dkLen=BLOCKSIZE)
 
 
 def pad(plaintext):
+    """
+    Implements PKCS#7 to pad `plaintext`. Not intended to be used for
+    passwords.
+
+    Parameters
+    ----------
+    plaintext:  str
+
+    Returns
+    -------
+    padded:     str
+    """
     topad = BLOCKSIZE - (len(plaintext) % BLOCKSIZE)
     padded = str(plaintext + bytearray([topad] * topad))
     return padded
 
 
 def unpad(padded_plaintext):
+    """
+    Reverses EncryptionToolbox.pad
+
+    Parameters
+    ----------
+    padded_plaintext:          str
+
+    Returns
+    -------
+    plaintext:                 str
+    """
     bytestring = bytearray(padded_plaintext)
     padding_char = bytestring[-1]
     plaintext = str(bytestring[: len(bytestring) - padding_char])
     return plaintext
 
 
-def encrypt(text, password, salt=SALT, IV=IV):
+def encrypt(text, password, salt=SALT, iv=IV):
+    """
+    Encrypts with AES, CBC mode. Result is decimal.
+
+    Parameters
+    ----------
+    text:               str
+    password:           str
+    salt:               str
+    iv                  str
+
+    Returns
+    -------
+    ciphertext_b10      long
+    """
     padded_text = pad(text)
     key = gen_key(password, salt)
     cipher = AES.AESCipher(key, AES.MODE_CBC, IV=IV)
@@ -99,6 +201,20 @@ def encrypt(text, password, salt=SALT, IV=IV):
 
 
 def decrypt(ciphertext, password, salt=SALT, IV=IV):
+    """
+    Decryptor for encrypt.
+
+    Parameters
+    ----------
+    ciphertext:         int or long or str
+    password:           int or long or str
+    salt:               str
+    iv                  str
+
+    Returns
+    -------
+    -                   str
+    """
     ciphertext_b16 = base_10_to_b(ciphertext, 16)
     ciphertext_original = binascii.unhexlify(ciphertext_b16)
     key = gen_key(password, salt)
@@ -108,13 +224,39 @@ def decrypt(ciphertext, password, salt=SALT, IV=IV):
 
 
 def pair_ciphertexts(c1, c2):
+    """
+    Implements the Cantor pairing function. Passes the two number to the
+    mathematica script in the same directory.
+    The reason for the external call is that Python's `long` won't give
+    unique answers when its fed into functions like `sqrt`.
+
+    Parameters
+    ----------
+    c1:                 str
+    c2:                 str
+
+    Returns
+    -------
+    -                   str
+    """
     return subprocess.check_output("wolframscript ./Pair {} {}".format(c1, c2),
                                    shell=True).rstrip().split('\n')[0]
 
 
-def depair_ciphertexts(c):
+def depair_ciphertexts(paired_ciphertext):
+    """
+    Reverse of pair_ciphertexts
+
+    Parameters
+    ----------
+    paired_ciphertext:  str
+
+    Returns
+    -------
+    -                   (long, long)
+    """
     column = subprocess.check_output(
-        "wolframscript ./Depair {}".format(c),
+        "wolframscript ./Depair {}".format(paired_ciphertext),
         shell=True).rstrip().split('\n')[0]
     wlist = column[len("Column"):].split(',')
     return map(long, (wlist[0][1:], wlist[1][1: len(wlist[1]) - 1]))
