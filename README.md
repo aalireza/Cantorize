@@ -3,10 +3,6 @@ Using Cantor pairing function on a set of ciphertexts as an approximation to den
 
 ---
 
-## Disclaimer
-
-This is a project I submitted to [PennApps]("https://devpost.com/software/deniable-cantor"). I spent almost all of the time dealing with Racket macros for my original project, but, it didn't work out. This thing was made in less three hours, which means it can be more polished.
-
 ## What does it do?
 
 The output of standard encyption algorithms like AES have the problem of being susceptible to ** Rubber-hose attack: ** i.e There's no mechanism in place to avoid release of the encrypted material in case of being pressured to reveal the key.
@@ -45,3 +41,8 @@ The double precision floating point backend of Python's Long type which is used 
 1. The encryption implementation should not be used. It has hard coded salts and ivs etc. and it is just meant to be a showcase. Making it actually usable might be a good idea!
 2. The ciphertexts are represented in base 10. This makes them longer. Converting them back to base 256 or alike may be a good idea.
 3. The ciphertexts are being passed through terminal. There's a limitation on the number of characters that can be passed this way. Reading and writing to files on disk should be preferred since it removes that limitation.
+
+
+## Disclaimer
+
+This is a project I submitted to [PennApps XV]("https://devpost.com/software/deniable-cantor"). I spent almost all of the time dealing with Racket macros for my original project, but, it didn't work out. This thing was made in less three hours, which means it can be more polished.
