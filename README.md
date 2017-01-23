@@ -45,4 +45,4 @@ The double precision floating point backend of Python's Long type which is used 
 
 ## Disclaimer
 
-This is a project I submitted to [PennApps XV]("https://devpost.com/software/deniable-cantor"). I spent almost all of the time dealing with Racket macros for my original project, but, it didn't work out. This thing was made in less three hours, which means it can be more polished.
+This is a project I submitted to [PennApps XV]("https://devpost.com/software/deniable-cantor"). I spent almost all of the time dealing with Racket for my initial project, but, it wouldn't have been completed on time. This thing was made in less three hours, which means it can be more polished!
